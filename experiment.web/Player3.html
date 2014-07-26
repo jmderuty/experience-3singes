@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title></title>
+        <script src="//code.jquery.com/jquery-2.1.0.js" type="text/javascript"></script>
+        <script src="http://stormancer.blob.core.windows.net/libs/js/jquery.stormancer-0.4.2.js" type="text/javascript"></script>
+        <script src="/scripts/adapter.js" type="text/javascript"></script>
+        <script src="/scripts/communicationPeer.js"></script>
+        <script src="/scripts/SubjectLambda.js"></script>
+    </head>
+    <body>
+        <h1>Sujet de test 3</h1>
+        <video id="localVideo" width="80" style="position: absolute;right: 0;top: 0" autoplay muted></video>
+        <p class="waitMsg" id="waitMsg">Waiting for alpha...</p>
+
+        <video id="video" autoplay muted></video>
+        <script>
+            $(function () {
+                app = new Experiment.SubjectLambda("subject3", $("#video")[0], $("#localVideo")[0]);
+                app.onPlayerConnected = function (role) {
+                    $("#waitMsg").hide();
+                }
+            });
+        </script>
+    </body>
+</html>

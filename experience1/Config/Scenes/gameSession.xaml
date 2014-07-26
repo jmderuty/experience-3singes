@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Scene xmlns="clr-namespace:Stormancer.Core;assembly=Stormancer.Core" xmlns:app="clr-namespace:Stormancer.Samples.Chat;assembly=Stormancer.Samples.Chat" >
+    <Scene.Behaviors>
+        <app:ChatBehavior/>
+        <app:WebRTCBehavior/>
+    </Scene.Behaviors>
+</Scene>

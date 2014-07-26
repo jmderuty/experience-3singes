@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1">
+    <title></title>
+    <script src="//code.jquery.com/jquery-2.1.0.js" type="text/javascript"></script>
+    <script src="http://stormancer.blob.core.windows.net/libs/js/jquery.stormancer-0.4.2.js" type="text/javascript"></script>
+    <script src="/scripts/adapter.js" type="text/javascript"></script>
+    <script src="/scripts/communicationPeer.js"></script>
+    <script src="/scripts/SubjectAlpha.js"></script>
+
+</head>
+<body>
+    <div id="subject1">
+        <video id="localVideo" width="80px" style="position: absolute;right: 0;top: 0" autoplay muted></video>
+        <h1>Sujet 1</h1>
+        <p class="waitMsg">En attente du sujet 1...</p>
+        <video id="video1" autoplay></video>
+    </div>
+    <div id="subject2">
+        <h1>Sujet 2</h1>
+        <p class="waitMsg">En attente du sujet 2...</p>
+        <video id="video2" autoplay></video>
+    </div>
+    <div id="subject3">
+        <h1>Sujet 3</h1>
+        <p class="waitMsg">En attente du sujet 3...</p>
+        <video id="video3" autoplay></video>
+    </div>
+
+    <script type="text/javascript">
+        app = new Experiment.SubjectAlpha($("#video1")[0], $("#video2")[0], $("#video3")[0], $("#localVideo")[0]);
+        app.onPlayerConnected = function (role) {
+            $("#"+ role+" .waitMsg").hide();
+        }
+    </script>
+</body>
+</html>
