@@ -19,10 +19,14 @@ var Experiment;
                 this.callback = streamConfig.callback;
             }
             this.scene.onMessage("p2p.ice", function (data) {
-                if (data.origin = _this.remoteId) {
+                if (data.origin == _this.remoteId) {
                     trace("received ICE candidate from " + _this.remoteId);
-                    if (data.candidate) {
-                        _this.peer.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    try  {
+                        if (data.candidate) {
+                            _this.peer.addIceCandidate(new RTCIceCandidate(data.candidate));
+                        }
+                    } catch (e) {
+                        trace(e);
                     }
                 }
             });
@@ -71,7 +75,7 @@ var Experiment;
                 trace("sending ICE candidate to " + _this.remoteId);
                 _this.scene.send("p2p.ice", { origin: _this.localId, destination: _this.remoteId, candidate: e.candidate });
             };
-
+            var deferred = $.Deferred();
             if (this.isMaster) {
                 this.peer.createOffer(function (description) {
                     _this.peer.setLocalDescription(description);
@@ -79,13 +83,18 @@ var Experiment;
                     _this.scene.sendRequest("p2p.sdp", { origin: _this.localId, destination: _this.remoteId, sdp: description }, function (answer) {
                         trace("received SDP answer from " + _this.remoteId);
                         _this.peer.setRemoteDescription(new RTCSessionDescription(answer.sdp));
+                        deferred.resolve();
                     }, function () {
                     });
                 }, this.OnFailure);
+            } else {
+                deferred.resolve();
             }
+            return deferred.promise();
         };
 
         Peer.prototype.OnFailure = function (event) {
+            console.error(event);
         };
         return Peer;
     })();
@@ -102,6 +111,7 @@ var Experiment;
             this.Peers = {};
             this.Streams = {};
             this.scene = scene;
+            this.tasks = new Array();
             scene.onMessage("p2p.opening", function (msg) {
                 trace("I am " + msg.localPeer);
                 trace("opening P2P connection with " + msg.remotePeer);
@@ -115,7 +125,9 @@ var Experiment;
                 var remotePeer = msg.remotePeer;
                 var peer = _this.Peers[remotePeer];
                 trace("P2P connection synchronized with " + msg.remotePeer);
-                peer.start();
+                _this.runTask(function () {
+                    return peer.start();
+                });
                 if (_this.onPeerAdded) {
                     _this.onPeerAdded(msg.remotePeer, peer);
                 }
@@ -132,6 +144,24 @@ var Experiment;
                 }
             });
         }
+        PeerManager.prototype.runTask = function (task) {
+            this.tasks.push(task);
+            if (!this._taskRunning) {
+                this.runTaskLoop();
+            }
+        };
+        PeerManager.prototype.runTaskLoop = function () {
+            var _this = this;
+            this._taskRunning = true;
+            var task = this.tasks.pop();
+            if (task != null) {
+                task().then(function () {
+                    _this.runTaskLoop();
+                });
+            } else {
+                this._taskRunning = false;
+            }
+        };
         return PeerManager;
     })();
     Experiment.PeerManager = PeerManager;

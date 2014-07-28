@@ -1,8 +1,10 @@
 ﻿using Stormancer.Core;
 using Stormancer.Samples.Chat.DTO;
 using Stormancer.Samples.Chat.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Samples.Chat
@@ -10,7 +12,7 @@ namespace Stormancer.Samples.Chat
     public class ChatBehavior : Behavior<Scene>
     {
         NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        private Dictionary<string, IConnection> _players = new Dictionary<string, IConnection>();
+        private Dictionary<string, Player> _players = new Dictionary<string, Player>();
         //private Player GetPlayer(IConnection connection)
         //{
         //    return _players.Values.FirstOrDefault(p => p.Connection == connection);
@@ -20,18 +22,75 @@ namespace Stormancer.Samples.Chat
         protected override void OnAttached()
         {
             AssociatedObject.RegisterRoute<string>("message", MessageSent);
+            AssociatedObject.RegisterApiRoute<string>("action", OnAdminAction);
+            AssociatedObject.RegisterApiRoute<string, GameState>("getGameState", OnAdminRequestGameState);
             //AssociatedObject.RegisterRoute<Candidate>("candidate", OnCandidate);
             //AssociatedObject.RegisterRoute<SessionDescription>("sdp", OnSdp);
-            AssociatedObject.RegisterRoute<string>("start", OnStart);
+            AssociatedObject.RegisterRoute<StateUpdate>("state", OnStart);
+            AssociatedObject.RegisterRoute<string>("shock", OnShock);
             AssociatedObject.OnConnect.Add(OnConnect);
             AssociatedObject.OnDisconnect.Add(OnDisconnect);
             AssociatedObject.OnStarting.Add(OnStarting);
             AssociatedObject.OnShutdown.Add(OnShutDown);
         }
 
-        private Task OnStart(RequestMessage<string> arg)
+        private Task OnShock(RequestMessage<string> arg)
         {
-            return this.TryStartConnections();
+            if (_players["alpha"].Connection.Id == arg.Connection.Id)
+            {
+                logger.Trace("alpha shocked " + arg);
+            }
+            var target = _players[arg.Content];
+            _shocked = true;
+            _shocks.Add(new Choc { Target = arg.Content, Date = _currentTimeLeft });
+            return target.Connection.Send("shock", true);
+        }
+
+        private List<Choc> _shocks = new List<Choc>();
+        private Task<GameState> OnAdminRequestGameState(string arg)
+        {
+
+            var state = new GameState
+            {
+                Chocs = _shocks,
+                AlphaConnected = _players.ContainsKey("alpha"),
+                Subject1Connected = _players.ContainsKey("subject1"),
+                Subject2Connected = _players.ContainsKey("subject2"),
+                Subject3Connected = _players.ContainsKey("subject3"),
+                State = this.gameState
+            };
+            return Task.FromResult(state);
+        }
+
+        private Task OnAdminAction(string action)
+        {
+            if (action == "stop")
+            {
+                if (_gameCTS != null && !_gameCTS.IsCancellationRequested)
+                {
+                    _gameCTS.Cancel();
+
+                }
+                _isGameRunning = false;
+                gameState = null;
+            }
+            if (action == "start")
+            {
+                _gameCTS = new CancellationTokenSource();
+                var _ = Task.Run(() => RunGame(_gameCTS.Token));
+            }
+            return Task.FromResult(true);
+        }
+        public struct StateUpdate
+        {
+            public int state;
+        }
+        private Task OnStart(RequestMessage<StateUpdate> arg)
+        {
+            var user = arg.Connection.GetUserData<User>();
+            var player = this._players[user.Role].State = arg.Content.state;
+            Trace("{0} updated its state to {1}", user.Role, arg.Content.ToString());
+            return Task.FromResult(true);
         }
 
         //private Task OnSdp(RequestMessage<SessionDescription> rq)
@@ -124,14 +183,14 @@ namespace Stormancer.Samples.Chat
 
             await AssociatedObject.Broadcast("user.Add", new[] { connection.GetUserData<User>() });
 
-            this._players[connection.GetUserData<User>().Role] = connection;
+            this._players[connection.GetUserData<User>().Role] = new Player { Connection = connection };
 
-            
+
 
         }
         private Dictionary<int, P2PConnection> _p2p = new Dictionary<int, P2PConnection>();
 
-        
+
         private Task TryStartConnections()
         {
             return Task.WhenAll(StartSubject(1), StartSubject(2), StartSubject(3));
@@ -140,13 +199,13 @@ namespace Stormancer.Samples.Chat
         {
 
             var subjectId = "subject" + id;
-           
+
             if (!this._p2p.ContainsKey(id) && _players.ContainsKey("alpha") && _players.ContainsKey(subjectId))//Si alpha & subject i connectés mais connexion non établie...
             {
-                var alpha = _players["alpha"];
-                var subject = _players[subjectId];
+                var alpha = _players["alpha"].Connection;
+                var subject = _players[subjectId].Connection;
                 Trace("Creating P2P connection {0}<->{1}", alpha.Id, subject.Id);
-               
+
                 Trace("Sending gameState.Ready to {0}<->{1}", alpha.Id, subject.Id);
                 await Task.WhenAll(
                     alpha.Send("gamestate.ready", new GameStateChanged { id = subject.Id, role = subjectId }),
@@ -156,7 +215,7 @@ namespace Stormancer.Samples.Chat
 
 
         }
-        
+
 
         //private async Task StopSubject(int id)
         //{
@@ -188,9 +247,100 @@ namespace Stormancer.Samples.Chat
             await AssociatedObject.Broadcast("user.Remove", data.Role);
         }
 
+        private bool _isGameRunning;
         private void Trace(string text, params string[] args)
         {
             logger.Trace(string.Format(text, args));
+        }
+
+        private string gameState;
+        private string _currentTimeLeft;
+        public async Task RunGame(CancellationToken token)
+        {
+            try
+            {
+                if (_isGameRunning)
+                {
+                    return;
+                }
+                logger.Trace("Starting game");
+                _isGameRunning = true;
+                await this.AssociatedObject.Broadcast("state", 0);
+                await Task.Delay(1000);
+                _shocks.Clear();
+                gameState = "En attente des sujets de test";
+                logger.Trace("Waiting for test subjects");
+                await AllPlayerConnected(token);
+                token.ThrowIfCancellationRequested();
+                gameState = "Générique de debut";
+                logger.Trace("playing opening credits");
+                await AllPlayerInState(1,token);//Tous les joueurs ont terminé le generique.
+                logger.Trace("Connexions P2P");
+                token.ThrowIfCancellationRequested();
+
+                await TryStartConnections();
+                logger.Trace("Debut de la partie");
+                gameState = "Test en cours...";
+                await this.AssociatedObject.Broadcast("state", 2);
+                while (!token.IsCancellationRequested)
+                {
+                    var end = DateTime.UtcNow.AddMinutes(10);
+                    DateTime current;
+                    while ((current = DateTime.UtcNow) < end && !token.IsCancellationRequested)
+                    {
+                        _currentTimeLeft = (end - current).ToString(@"mm\:ss");
+                        await this.AssociatedObject.Broadcast("timeleft", _currentTimeLeft);
+                        await Task.Delay(1000);
+                        if (_shocked)
+                        {
+                            break;
+                        }
+                    }
+                    if (!_shocked && !token.IsCancellationRequested)
+                    {
+                        _shocks.Add(new Choc { Date = _currentTimeLeft, Target = "Tous" });
+                        await this.AssociatedObject.Broadcast("shock", true);//Choque tout le monde
+                    }
+                    _shocked = false;
+                }
+
+
+                gameState = "Test terminé.";
+            }
+            catch (Exception ex)
+            {
+                logger.Error("Game stopped", ex);
+            }
+            finally
+            {
+                gameState = null;
+                _isGameRunning = false;
+            }
+        }
+        private bool _shocked;
+
+        private CancellationTokenSource _gameCTS;
+
+        private async Task AllPlayerInState(int i,CancellationToken token)
+        {
+            this.AssociatedObject.Broadcast("state", i);
+            while (this._players.Values.Any(p => p.State < i) && !token.IsCancellationRequested)
+            {
+                await Task.Delay(1000, token);
+            }
+
+        }
+
+
+        private async Task AllPlayerConnected(CancellationToken token)
+        {
+            Trace(_players.Count.ToString());
+            while (_players.Count < 4 && !token.IsCancellationRequested)
+            {
+                Trace(_players.Count.ToString());
+                await Task.Delay(1000, token);
+            }
+
         }
     }
 }

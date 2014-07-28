@@ -59,6 +59,11 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="admin.php" />
+    <Content Include="Content\start-alpha.mp3" />
+    <Content Include="Content\choc.mp3" />
+    <Content Include="Content\ending.mp3" />
+    <Content Include="Content\starting.mp3" />
     <Content Include="packages.config" />
     <None Include="Properties\PublishProfiles\glados.pubxml" />
     <None Include="Web.Debug.config">
@@ -81,11 +86,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="Scripts\sounds.ts" />
     <TypeScriptCompile Include="Scripts\SubjectAlpha.ts" />
     <TypeScriptCompile Include="Scripts\SubjectLambda.ts" />
     <TypeScriptCompile Include="Scripts\communicationPeer.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\stormancer.d.ts" />
+    <TypeScriptCompile Include="Scripts\typings\webaudioapi\waa.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\webrtc\MediaStream.d.ts" />
     <TypeScriptCompile Include="Scripts\typings\webrtc\RTCPeerConnection.d.ts" />
   </ItemGroup>

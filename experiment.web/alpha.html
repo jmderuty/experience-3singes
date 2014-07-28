@@ -8,27 +8,43 @@
     <script src="http://stormancer.blob.core.windows.net/libs/js/jquery.stormancer-0.4.2.js" type="text/javascript"></script>
     <script src="/scripts/adapter.js" type="text/javascript"></script>
     <script src="/scripts/communicationPeer.js"></script>
+    <script src="/scripts/sounds.js"></script>
     <script src="/scripts/SubjectAlpha.js"></script>
-
+    <style type="text/css">
+        .subject{
+            display:inline-block;
+            width:33%;
+            }
+        .subject>video{
+            width: 100%
+            }
+    </style>
 </head>
 <body>
-    <div id="subject1">
-        <video id="localVideo" width="80px" style="position: absolute;right: 0;top: 0" autoplay muted></video>
+    <div class="subject" id="subject1">
         <h1>Sujet 1</h1>
         <p class="waitMsg">En attente du sujet 1...</p>
         <video id="video1" autoplay></video>
     </div>
-    <div id="subject2">
+    <div class="subject" id="subject2">
         <h1>Sujet 2</h1>
         <p class="waitMsg">En attente du sujet 2...</p>
-        <video id="video2" autoplay></video>
+        <video id="video2" autoplay style="opacity:0"></video>
     </div>
-    <div id="subject3">
+    <div class="subject" id="subject3">
         <h1>Sujet 3</h1>
         <p class="waitMsg">En attente du sujet 3...</p>
-        <video id="video3" autoplay></video>
+        <video id="video3" autoplay muted></video>
     </div>
-
+    <div id="UI" style="display:none">
+        <p>ATTENTION: <span id="timeleft"></span> avant choc automatique</p> 
+        <fieldset>
+            <legend>Choisissez la cible du choc électrique</legend>
+            <button id="shocks1">Sujet 1</button>
+            <button id="shocks2">Sujet 2</button>
+            <button id="shocks3">Sujet 3</button>
+        </fieldset>
+    </div>
     <script type="text/javascript">
         app = new Experiment.SubjectAlpha($("#video1")[0], $("#video2")[0], $("#video3")[0], $("#localVideo")[0]);
         app.onPlayerConnected = function (role) {

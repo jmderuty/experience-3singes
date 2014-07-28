@@ -156,17 +156,27 @@ namespace Stormancer.Samples.Chat
         }
         public async Task<P2PConnection> CreateConnection(IConnection p1, IConnection p2)
         {
+            if (p1 == null)
+            {
+                throw new ArgumentNullException("p1");
+            }
+            if (p2 == null)
+            {
+                throw new ArgumentNullException("p2");
+            }
             var connection = new P2PConnection(p1, p2, GenerateId());
             var tcs = new TaskCompletionSource<bool>();
             _pairInProgress.Add(connection.PairId, new PairReadyState { P1 = p1.Id, P2 = p2.Id, Tcs = tcs });
             logger.Trace("Added Pair in progress " + connection.PairId);
-            await Task.WhenAll(connection.Peer1.Send("p2p.opening", new P2POpeningDto { pairId = connection.PairId, isMasterPeer = true, remotePeer = p2.Id, localPeer = p1.Id }), connection.Peer2.Send("p2p.opening", new P2POpeningDto { pairId = connection.PairId, isMasterPeer = false, remotePeer = p1.Id, localPeer = p2.Id }));
+            await connection.Peer1.Send("p2p.opening", new P2POpeningDto { pairId = connection.PairId, isMasterPeer = true, remotePeer = p2.Id, localPeer = p1.Id });
+            await connection.Peer2.Send("p2p.opening", new P2POpeningDto { pairId = connection.PairId, isMasterPeer = false, remotePeer = p1.Id, localPeer = p2.Id });
 
             await tcs.Task;
             AddP2P(connection);
             logger.Trace("Created connection " + connection.PairId);
-            await Task.WhenAll(connection.Peer1.Send("p2p.start", new P2PStartDto { pairId = connection.PairId, remotePeer = p2.Id }),
-                                connection.Peer2.Send("p2p.start", new P2PStartDto { pairId = connection.PairId, remotePeer = p1.Id }));
+            
+            await connection.Peer1.Send("p2p.start", new P2PStartDto { pairId = connection.PairId, remotePeer = p2.Id });
+            await connection.Peer2.Send("p2p.start", new P2PStartDto { pairId = connection.PairId, remotePeer = p1.Id });
             return connection;
 
         }
@@ -189,7 +199,7 @@ namespace Stormancer.Samples.Chat
             }
 
             RemoveP2P(connection);
-
+            
             await Task.WhenAll(tasks);
 
             connection.Status = P2PConnection.P2PStatus.Closed;
