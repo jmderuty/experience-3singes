@@ -65,6 +65,7 @@
     <Content Include="Content\ending.mp3" />
     <Content Include="Content\starting.mp3" />
     <Content Include="packages.config" />
+    <None Include="Properties\PublishProfiles\glados %282%29.pubxml" />
     <None Include="Properties\PublishProfiles\glados.pubxml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>

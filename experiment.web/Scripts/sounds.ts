@@ -6,8 +6,8 @@ module Experiment {
         public choc: HTMLAudioElement;
 
         constructor() {
-            this.startGeneric = new Audio("/content/choc.mp3");//new Audio("/content/starting.mp3");
-            this.endingGeneric = new Audio("/content/choc.mp3");//new Audio("/content/ending.mp3");
+            this.startGeneric = new Audio("/content/starting.mp3");
+            this.endingGeneric = new Audio("/content/ending.mp3");
             this.choc = new Audio("/content/choc.mp3");
         }
     }
@@ -17,7 +17,7 @@ module Experiment {
         public start_alpha: HTMLAudioElement;
         constructor() {
             super();
-            this.start_alpha = new Audio("/content/choc.mp3");//new Audio("/content/start-alpha.mp3");
+            this.start_alpha = new Audio("/content/start-alpha.mp3");
         }
     }
 } 
