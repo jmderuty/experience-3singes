@@ -66,6 +66,7 @@
     <Content Include="Content\starting.mp3" />
     <Content Include="packages.config" />
     <None Include="Properties\PublishProfiles\glados %282%29.pubxml" />
+    <None Include="Properties\PublishProfiles\glados %283%29.pubxml" />
     <None Include="Properties\PublishProfiles\glados.pubxml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
@@ -81,6 +82,7 @@
     <Content Include="Player1.html" />
     <Content Include="Player2.html" />
     <Content Include="Player3.html" />
+    <Content Include="stormancer.class.php" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
